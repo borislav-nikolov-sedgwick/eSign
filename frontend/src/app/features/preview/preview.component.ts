@@ -1,132 +1,92 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { WizardHeaderComponent } from '../../shared/components/wizard-header/wizard-header.component';
-import { StepIndicatorComponent, WizardStep } from '../../shared/components/step-indicator/step-indicator.component';
-import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
+import { ApiService } from '../../core/services/api.service';
 import { SessionService } from '../../core/services/session.service';
+import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-preview',
   standalone: true,
-  imports: [CommonModule, WizardHeaderComponent, StepIndicatorComponent, LoadingSpinnerComponent],
+  imports: [CommonModule],
   template: `
-    <div class="min-h-screen bg-gray-50">
-      <app-wizard-header title="Preview & Submit" />
-      
-      <main class="max-w-4xl mx-auto px-4 py-8 sm:px-6">
-        <app-step-indicator [steps]="steps" currentStep="sign" />
+    <div class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-white/20">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <h1 class="text-2xl font-bold text-white">Preview Signed Document</h1>
+              <p class="text-blue-200 mt-1">Please review your signed document before submitting</p>
+            </div>
+          </div>
 
-        <div class="bg-white rounded-xl shadow-lg p-6 sm:p-8 mt-6">
-          <h1 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">
-            Preview Signed Document
-          </h1>
-          
-          <p class="text-gray-600 mb-6">
-            Review your signed document below. If everything looks correct, click Submit to complete.
-          </p>
-
-          @if (loading()) {
-            <app-loading-spinner [overlay]="true" message="Submitting document..." />
-          }
-
-          <!-- Signed Document Preview -->
-          <div class="border-2 border-gray-200 rounded-lg overflow-hidden mb-6">
-            <div class="bg-gray-100 p-8 min-h-[400px]">
-              <div class="bg-white shadow-lg max-w-2xl mx-auto p-8">
-                <h2 class="text-2xl font-bold mb-4">Insurance Claim Document</h2>
-                <div class="space-y-4 text-gray-700">
-                  <p><strong>Claim Reference:</strong> {{ session()?.claimReference }}</p>
-                  <p><strong>Policy Holder:</strong> {{ session()?.policyHolder }}</p>
-                  <hr class="my-4">
-                  <p>This document confirms your insurance claim.</p>
-                  <div class="mt-8 pt-8 border-t">
-                    <p class="text-sm text-gray-500 mb-2">Signed by:</p>
-                    @if (signature()) {
-                      <div class="bg-gray-50 rounded-lg p-4 inline-block">
-                        <img [src]="signature()?.imageDataBase64" alt="Signature" class="max-h-16" />
-                      </div>
-                    } @else {
-                      <p class="text-2xl" style="font-family: 'Dancing Script', cursive;">
-                        {{ session()?.policyHolder || 'Your Signature' }}
-                      </p>
-                    }
-                    <p class="text-xs text-gray-400 mt-2">
-                      Signed on {{ today | date:'medium' }}
-                    </p>
-                  </div>
-                </div>
+          <div class="bg-white rounded-lg overflow-hidden mb-6" style="height: 500px;">
+            <div class="flex items-center justify-center h-full text-gray-500">
+              <div class="text-center">
+                <svg class="w-16 h-16 mx-auto mb-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-lg font-medium">Document Signed Successfully</p>
+                <p class="text-sm text-gray-400 mt-2">Your signature has been applied to the document</p>
               </div>
             </div>
           </div>
 
-          <!-- Legal Notice -->
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p class="text-sm text-blue-800">
-              <strong>Important:</strong> By clicking Submit, you confirm that:
-            </p>
-            <ul class="text-sm text-blue-700 mt-2 list-disc list-inside space-y-1">
-              <li>The information provided is accurate and complete</li>
-              <li>You agree to the terms and conditions of this claim</li>
-              <li>Your electronic signature is legally binding</li>
-            </ul>
-          </div>
-
-          <div class="flex flex-col sm:flex-row gap-4">
-            <button 
-              type="button"
-              (click)="onGoBack()"
-              [disabled]="loading()"
-              class="px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50">
-              Go back
+          <div class="flex space-x-4">
+            <button
+              (click)="goBack()"
+              class="flex-1 py-3 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-600 transition-all">
+              Back to Document
             </button>
-            <button 
-              (click)="onSubmit()"
-              [disabled]="loading()"
-              class="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
-              @if (loading()) {
+            <button
+              (click)="submitDocument()"
+              [disabled]="submitting()"
+              class="flex-1 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg disabled:opacity-50">
+              @if (submitting()) {
                 <span class="flex items-center justify-center">
-                  <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                  </svg>
+                  <span class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></span>
                   Submitting...
                 </span>
               } @else {
-                Submit
+                Submit Document
               }
             </button>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   `
 })
 export class PreviewComponent {
   private router = inject(Router);
+  private apiService = inject(ApiService);
   private sessionService = inject(SessionService);
+  private notification = inject(NotificationService);
 
-  loading = this.sessionService.loading;
-  session = this.sessionService.session;
-  signature = this.sessionService.currentSignature;
-  today = new Date();
+  submitting = signal(false);
 
-  steps: WizardStep[] = [
-    { id: 'postcode', title: 'Postcode', description: 'Verify postcode' },
-    { id: '2fa', title: '2FA', description: 'Verify phone' },
-    { id: 'document', title: 'Document', description: 'View document' },
-    { id: 'sign', title: 'Sign', description: 'Sign document' }
-  ];
-
-  async onSubmit() {
-    const success = await this.sessionService.submitDocument();
-    if (success) {
-      this.router.navigate(['/complete']);
-    }
-  }
-
-  onGoBack() {
+  goBack() {
     this.router.navigate(['/document']);
   }
-}
 
+  submitDocument() {
+    this.submitting.set(true);
+    const token = this.sessionService.getToken();
+    if (!token) {
+      this.router.navigate(['/']);
+      return;
+    }
+
+    this.apiService.submitDocument(token).subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.notification.success('Document submitted successfully!');
+        this.router.navigate(['/complete']);
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notification.error('Failed to submit document');
+      }
+    });
+  }
+}

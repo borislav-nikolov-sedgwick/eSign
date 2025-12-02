@@ -1,122 +1,83 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { WizardHeaderComponent } from '../../shared/components/wizard-header/wizard-header.component';
+import { ApiService } from '../../core/services/api.service';
 import { SessionService } from '../../core/services/session.service';
+import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-completion',
   standalone: true,
-  imports: [CommonModule, WizardHeaderComponent],
+  imports: [CommonModule],
   template: `
-    <div class="min-h-screen bg-gradient-to-b from-green-50 to-white">
-      <app-wizard-header title="Complete" />
-      
-      <main class="max-w-4xl mx-auto px-4 py-8 sm:px-6">
-        <div class="bg-white rounded-xl shadow-lg p-6 sm:p-8">
-          <!-- Success Message -->
-          <div class="text-center mb-8">
-            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce-once">
-              <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-              </svg>
-            </div>
-            
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-              Document Signed Successfully!
-            </h1>
-            
-            <p class="text-gray-600 max-w-md mx-auto">
-              Thank you for signing the document. Your signed document has been submitted and processed successfully.
-            </p>
-          </div>
+    <div class="min-h-screen bg-gradient-to-br from-slate-900 via-green-900 to-slate-900 flex items-center justify-center p-4">
+      <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full shadow-2xl border border-white/20 text-center">
+        <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
 
-          <!-- Summary Card -->
-          <div class="bg-gray-50 rounded-lg p-6 mb-8">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Summary</h2>
-            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <dt class="text-sm text-gray-500">Claim Reference</dt>
-                <dd class="font-medium text-gray-900">{{ session()?.claimReference }}</dd>
-              </div>
-              <div>
-                <dt class="text-sm text-gray-500">Policy Holder</dt>
-                <dd class="font-medium text-gray-900">{{ session()?.policyHolder }}</dd>
-              </div>
-              <div>
-                <dt class="text-sm text-gray-500">Status</dt>
-                <dd class="font-medium text-green-600">✓ Completed</dd>
-              </div>
-              <div>
-                <dt class="text-sm text-gray-500">Signed On</dt>
-                <dd class="font-medium text-gray-900">{{ today | date:'medium' }}</dd>
-              </div>
-            </dl>
-          </div>
+        <h1 class="text-3xl font-bold text-white mb-4">Document Signed!</h1>
+        <p class="text-green-200 mb-8">
+          Your document has been successfully signed and submitted. You will receive a confirmation email shortly.
+        </p>
 
-          <!-- Signed Document Preview -->
-          <div class="border-2 border-gray-200 rounded-lg overflow-hidden mb-8">
-            <div class="bg-gray-50 px-4 py-2 border-b border-gray-200">
-              <p class="text-sm font-medium text-gray-700">Signed Document Preview</p>
-            </div>
-            <div class="bg-white p-6">
-              <div class="max-w-lg mx-auto">
-                <h3 class="text-lg font-bold mb-2">Insurance Claim Document</h3>
-                <p class="text-sm text-gray-600 mb-4">Claim: {{ session()?.claimReference }}</p>
-                <div class="border-t pt-4">
-                  <p class="text-xs text-gray-500 mb-2">Signature:</p>
-                  @if (signature()) {
-                    <img [src]="signature()?.imageDataBase64" alt="Your signature" class="max-h-12" />
-                  } @else {
-                    <p class="text-xl" style="font-family: 'Dancing Script', cursive;">
-                      {{ session()?.policyHolder }}
-                    </p>
-                  }
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <button 
-              (click)="onDownload()"
-              class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        <button
+          (click)="downloadDocument()"
+          [disabled]="downloading()"
+          class="w-full py-3 bg-white text-green-700 font-semibold rounded-lg hover:bg-green-50 transition-all shadow-lg disabled:opacity-50">
+          @if (downloading()) {
+            <span class="flex items-center justify-center">
+              <span class="animate-spin rounded-full h-5 w-5 border-b-2 border-green-700 mr-2"></span>
+              Downloading...
+            </span>
+          } @else {
+            <span class="flex items-center justify-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
               </svg>
               Download Signed Document
-            </button>
-          </div>
+            </span>
+          }
+        </button>
 
-          <!-- Contact Info -->
-          <div class="mt-8 pt-8 border-t text-center">
-            <p class="text-sm text-gray-500">
-              Need help? Contact our support team at <a href="mailto:support@example.com" class="text-blue-600 hover:underline">support&#64;example.com</a>
-            </p>
-          </div>
+        <div class="mt-8 pt-6 border-t border-white/20">
+          <p class="text-blue-200 text-sm">
+            Reference: {{ claimReference() }}
+          </p>
         </div>
-      </main>
+      </div>
     </div>
-  `,
-  styles: [`
-    @keyframes bounce-once {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-    .animate-bounce-once {
-      animation: bounce-once 0.5s ease-in-out;
-    }
-  `]
+  `
 })
 export class CompletionComponent {
+  private apiService = inject(ApiService);
   private sessionService = inject(SessionService);
+  private notification = inject(NotificationService);
 
-  session = this.sessionService.session;
-  signature = this.sessionService.currentSignature;
-  today = new Date();
+  downloading = signal(false);
+  claimReference = signal(this.sessionService.session()?.claimReference || 'N/A');
 
-  onDownload() {
-    this.sessionService.downloadSignedDocument();
+  downloadDocument() {
+    this.downloading.set(true);
+    const token = this.sessionService.getToken();
+    if (!token) return;
+
+    this.apiService.downloadDocument(token).subscribe({
+      next: (blob) => {
+        this.downloading.set(false);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'signed-document.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
+        this.notification.success('Document downloaded!');
+      },
+      error: () => {
+        this.downloading.set(false);
+        this.notification.error('Failed to download document');
+      }
+    });
   }
 }
-

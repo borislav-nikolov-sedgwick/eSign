@@ -1,0 +1,110 @@
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+
+# =========================
+# IDE and Editor folders
+# =========================
+.idea/
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.cursor/
+.history/*
+*.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+# =========================
+# .NET / C#
+# =========================
+bin/
+obj/
+*.user
+*.userosscache
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+*.mdf
+*.ldf
+project.lock.json
+*.nuget.props
+*.nuget.targets
+.nuget/
+packages/
+*.nupkg
+
+# =========================
+# Node.js / Angular
+# =========================
+node_modules/
+npm-debug.log
+yarn-error.log
+.npm/
+.yarn/
+
+# Angular
+frontend/dist/
+frontend/tmp/
+frontend/out-tsc/
+frontend/bazel-out/
+frontend/.angular/cache
+
+# =========================
+# Build outputs
+# =========================
+dist/
+tmp/
+out-tsc/
+bazel-out/
+build/
+publish/
+
+# =========================
+# Test and Coverage
+# =========================
+coverage/
+*.lcov
+.nyc_output/
+testem.log
+libpeerconnection.log
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+
+# =========================
+# System files
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# =========================
+# Secrets and Environment
+# =========================
+*.env
+*.env.local
+*.env.*.local
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# =========================
+# Misc
+# =========================
+.sass-cache/
+connect.lock
+/typings
+
