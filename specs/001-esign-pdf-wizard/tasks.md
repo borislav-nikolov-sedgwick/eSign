@@ -78,14 +78,14 @@
 
 - [ ] T031 [P] Create ApiService HTTP wrapper in `frontend/src/app/core/services/api.service.ts`
 - [ ] T032 [P] Create SessionService state management in `frontend/src/app/core/services/session.service.ts`
-- [ ] T033 [P] Create NotificationService for toasts in `frontend/src/app/core/services/notification.service.ts`
+- [ ] T033 [P] Create NotificationService for toasts in `frontend/src/app/core/services/notification.service.ts` (FR-004/FR-005: success/error notifications used by all wizard steps)
 - [ ] T034 Create WizardStepGuard route guard in `frontend/src/app/core/guards/wizard-step.guard.ts`
 - [ ] T035 [P] Create ErrorInterceptor in `frontend/src/app/core/interceptors/error.interceptor.ts`
 
 ### Frontend Shared Components
 
 - [ ] T036 [P] Create WizardHeaderComponent in `frontend/src/app/shared/components/wizard-header/wizard-header.component.ts`
-- [ ] T037 [P] Create StepIndicatorComponent in `frontend/src/app/shared/components/step-indicator/step-indicator.component.ts`
+- [ ] T037 [P] Create StepIndicatorComponent in `frontend/src/app/shared/components/step-indicator/step-indicator.component.ts` (FR-003: step progress indicators)
 - [ ] T038 [P] Create NotificationComponent in `frontend/src/app/shared/components/notification/notification.component.ts`
 - [ ] T039 [P] Create LoadingSpinnerComponent in `frontend/src/app/shared/components/loading-spinner/loading-spinner.component.ts`
 - [ ] T040 [P] Create MaskPhonePipe in `frontend/src/app/shared/pipes/mask-phone.pipe.ts`
@@ -117,7 +117,7 @@
 
 ### Frontend - Introduction Page
 
-- [ ] T050 [US1] Create IntroductionComponent with wizard overview in `frontend/src/app/features/introduction/introduction.component.ts`
+- [ ] T050 [US1] Create IntroductionComponent with wizard overview in `frontend/src/app/features/introduction/introduction.component.ts` (integrate StepIndicatorComponent from T037, use NotificationService from T033)
 - [ ] T051 [US1] Style Introduction page mobile-first in `frontend/src/app/features/introduction/introduction.component.css`
 
 ### Frontend - Postcode Verification (US5)

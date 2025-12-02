@@ -130,8 +130,7 @@ frontend/
 │   │   ├── app.config.ts
 │   │   └── app.routes.ts
 │   ├── assets/
-│   │   ├── fonts/                    # Cursive signature fonts
-│   │   └── sample-documents/         # Test PDFs
+│   │   └── sample-documents/         # Test PDFs (cursive fonts loaded via Google Fonts CDN)
 │   ├── environments/
 │   │   ├── environment.ts
 │   │   └── environment.prod.ts
