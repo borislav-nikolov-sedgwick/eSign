@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { trigger, transition, style, animate } from '@angular/animations';
 import { ApiService } from '../../core/services/api.service';
 import { SessionService } from '../../core/services/session.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -16,8 +17,34 @@ interface DrawingStroke {
   selector: 'app-document-viewer',
   standalone: true,
   imports: [CommonModule, FormsModule],
+  animations: [
+    trigger('dialogAnimation', [
+      transition(':enter', [
+        style({ opacity: 0 }),
+        animate('300ms ease-out', style({ opacity: 1 }))
+      ]),
+      transition(':leave', [
+        animate('200ms ease-in', style({ opacity: 0 }))
+      ])
+    ]),
+    trigger('dialogContentAnimation', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'scale(0.9) translateY(20px)' }),
+        animate('400ms cubic-bezier(0.68, -0.55, 0.265, 1.55)', style({
+          opacity: 1,
+          transform: 'scale(1) translateY(0)'
+        }))
+      ]),
+      transition(':leave', [
+        animate('200ms ease-in', style({
+          opacity: 0,
+          transform: 'scale(0.95) translateY(10px)'
+        }))
+      ])
+    ])
+  ],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
+    <div class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 page-transition">
       <div class="max-w-4xl mx-auto">
         <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-white/20">
           <div class="mb-6">
@@ -64,11 +91,16 @@ interface DrawingStroke {
     </div>
 
     @if (showSignatureDialog()) {
-      <div class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div @dialogAnimation class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div @dialogContentAnimation class="bg-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto border-2 border-slate-600">
           <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold text-white">Create Your Signature</h2>
-            <button (click)="closeSignatureDialog()" class="text-gray-400 hover:text-white">
+            <h2 class="text-xl font-bold text-white flex items-center">
+              <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+              </svg>
+              Create Your Signature
+            </h2>
+            <button (click)="closeSignatureDialog()" class="text-gray-400 hover:text-white transition-all transform hover:scale-110 hover:rotate-90 duration-200">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
@@ -80,9 +112,10 @@ interface DrawingStroke {
             @for (tab of tabs; track tab.id) {
               <button
                 (click)="switchTab(tab.id)"
-                [class.bg-blue-500]="activeTab() === tab.id"
-                [class.bg-slate-700]="activeTab() !== tab.id"
-                class="flex-1 py-2 px-4 rounded-lg text-white text-sm font-medium transition-colors">
+                class="flex-1 py-2 px-4 rounded-lg text-white text-sm font-medium transition-all duration-300 transform hover:scale-105"
+                [class]="activeTab() === tab.id
+                  ? 'flex-1 py-2 px-4 rounded-lg text-white text-sm font-medium transition-all duration-300 transform hover:scale-105 bg-gradient-to-r from-blue-500 to-blue-600 shadow-lg'
+                  : 'flex-1 py-2 px-4 rounded-lg text-white text-sm font-medium transition-all duration-300 transform hover:scale-105 bg-slate-700 hover:bg-slate-600'">
                 {{ tab.label }}
               </button>
             }
@@ -117,9 +150,8 @@ interface DrawingStroke {
                       (click)="selectedFont.set(font.name)"
                       [class.ring-2]="selectedFont() === font.name"
                       [class.ring-blue-500]="selectedFont() === font.name"
-                      class="flex-1 py-3 bg-white rounded text-center text-lg"
-                      [style.font-family]="font.family"
-                      [style.color]="selectedColor()">
+                      class="flex-1 py-3 bg-white rounded text-center text-lg text-slate-900 transition-all hover:scale-105"
+                      [style.font-family]="font.family">
                       Aa
                     </button>
                   }
@@ -145,11 +177,11 @@ interface DrawingStroke {
               </div>
 
               <!-- Preview -->
-              <div class="bg-white rounded-lg p-6 text-center min-h-24">
+              <div class="bg-white rounded-lg p-6 text-center min-h-24 transition-all">
                 <span
                   [style.font-family]="getCurrentFontFamily()"
                   [style.color]="selectedColor()"
-                  class="text-3xl">
+                  class="text-3xl transition-colors duration-300">
                   {{ typedName || 'Your Signature' }}
                 </span>
               </div>
@@ -251,14 +283,19 @@ interface DrawingStroke {
           <button
             (click)="applySignature()"
             [disabled]="!canApplySignature() || signingInProgress()"
-            class="w-full mt-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+            class="w-full mt-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 hover:shadow-2xl btn-ripple">
             @if (signingInProgress()) {
               <span class="flex items-center justify-center">
                 <span class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></span>
                 Applying Signature...
               </span>
             } @else {
-              Apply Signature
+              <span class="flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Apply Signature
+              </span>
             }
           </button>
         </div>

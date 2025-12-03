@@ -19,10 +19,10 @@ export class NotificationService {
     }
   }
 
-  success(message: string): void { this.show('success', message); }
-  error(message: string): void { this.show('error', message, 8000); }
-  warning(message: string): void { this.show('warning', message); }
-  info(message: string): void { this.show('info', message); }
+  success(message: string): void { this.show('success', message, 3500); }
+  error(message: string): void { this.show('error', message, 4000); }
+  warning(message: string): void { this.show('warning', message, 3000); }
+  info(message: string): void { this.show('info', message, 2500); }
 
   dismiss(id: string): void {
     this._notifications.update(n => n.filter(x => x.id !== id));

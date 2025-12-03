@@ -10,49 +10,60 @@ import { NotificationService } from '../../core/services/notification.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
-      <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full shadow-2xl border border-white/20">
+    <div class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4 page-transition">
+      <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full shadow-2xl border border-white/20 animate-scaleIn">
         <div class="text-center mb-8">
-          <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-celebrate">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
           </div>
-          <h1 class="text-2xl font-bold text-white mb-2">Document Signing</h1>
-          <p class="text-blue-200">Securely sign your insurance documents</p>
+          <h1 class="text-2xl font-bold text-white mb-2 animate-fadeIn">Document Signing</h1>
+          <p class="text-blue-200 animate-fadeIn" style="animation-delay: 0.1s;">Securely sign your insurance documents</p>
         </div>
 
         @if (loading()) {
           <div class="flex justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            <div class="relative">
+              <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-white"></div>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <div class="w-6 h-6 bg-blue-500 rounded-full animate-pulse"></div>
+              </div>
+            </div>
           </div>
         } @else if (error()) {
-          <div class="text-center py-8">
+          <div class="text-center py-8 animate-slideInUp">
             <p class="text-red-400 mb-4">{{ error() }}</p>
-            <button (click)="loadSession()" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+            <button (click)="loadSession()" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all transform hover:scale-105 btn-ripple">
               Try Again
             </button>
           </div>
         } @else {
           <div class="space-y-4 text-blue-100 mb-8">
-            <div class="flex items-start space-x-3">
-              <span class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">1</span>
-              <span>Verify your identity with your postcode</span>
+            <div class="flex items-start space-x-3 animate-slideInUp" style="animation-delay: 0.2s;">
+              <span class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-sm font-bold text-white flex-shrink-0 glow">1</span>
+              <span class="transition-all hover:translate-x-1">Verify your identity with your postcode</span>
             </div>
-            <div class="flex items-start space-x-3">
+            <div class="flex items-start space-x-3 animate-slideInUp" style="animation-delay: 0.3s;">
               <span class="w-6 h-6 rounded-full bg-blue-500/50 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">2</span>
-              <span>Confirm with a verification code</span>
+              <span class="transition-all hover:translate-x-1">Confirm with a verification code</span>
             </div>
-            <div class="flex items-start space-x-3">
+            <div class="flex items-start space-x-3 animate-slideInUp" style="animation-delay: 0.4s;">
               <span class="w-6 h-6 rounded-full bg-blue-500/50 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">3</span>
-              <span>Review and sign your document</span>
+              <span class="transition-all hover:translate-x-1">Review and sign your document</span>
             </div>
           </div>
 
           <button
             (click)="startProcess()"
-            class="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg">
-            Begin Verification
+            class="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg transform hover:scale-105 hover:shadow-2xl btn-ripple animate-slideInUp"
+            style="animation-delay: 0.5s;">
+            <span class="flex items-center justify-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+              </svg>
+              Begin Verification
+            </span>
           </button>
         }
       </div>
