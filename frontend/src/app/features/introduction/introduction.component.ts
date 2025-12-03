@@ -77,13 +77,19 @@ export class IntroductionComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    const token = this.route.snapshot.queryParamMap.get('token') || 'demo-token-123';
+    const token = this.route.snapshot.queryParamMap.get('token');
+
+    // If no token provided, redirect to expired/unauthorized page
+    if (!token) {
+      this.router.navigate(['/expired']);
+      return;
+    }
 
     this.apiService.getSession(token).subscribe({
       next: (session) => {
         this.sessionService.setSession(session);
         this.loading.set(false);
-        
+
         // Check session status and redirect to appropriate step
         this.redirectBasedOnStatus(session.status, session);
       },
@@ -100,6 +106,7 @@ export class IntroductionComponent implements OnInit {
 
   private redirectBasedOnStatus(status: string, session: any) {
     // Map backend status to frontend route
+    // Only redirect if user has already started the process (not on Pending with no progress)
     switch (status) {
       case 'Completed':
         this.router.navigate(['/complete']);
@@ -121,21 +128,20 @@ export class IntroductionComponent implements OnInit {
         if (session.postcodeVerified) {
           this.router.navigate(['/two-factor']);
         } else {
-          this.notification.info('Please verify your postcode to continue.');
-          this.router.navigate(['/postcode']);
+          // Stay on intro page - user hasn't started yet
         }
         break;
       case 'Pending':
       default:
-        // Check if user has already completed some steps
+        // Check if user has already completed some steps - redirect to continue
         if (session.twoFactorVerified) {
+          this.notification.info('Welcome back! Continue reviewing your document.');
           this.router.navigate(['/document']);
         } else if (session.postcodeVerified) {
+          this.notification.info('Welcome back! Please complete verification.');
           this.router.navigate(['/two-factor']);
-        } else {
-          // Show introduction page
-          this.notification.info('Welcome! Please verify your identity to continue.');
         }
+        // Otherwise stay on intro page - user hasn't started yet
         break;
     }
   }

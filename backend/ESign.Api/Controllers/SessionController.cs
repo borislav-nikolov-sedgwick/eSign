@@ -71,8 +71,14 @@ public class SessionController : ControllerBase
         if (session == null) return NotFound(new ErrorResponse { Error = "NOT_FOUND", Message = "Session not found" });
         if (IsSessionExpired(session)) return StatusCode(410, new ErrorResponse { Error = "EXPIRED", Message = "Session has expired" });
         if (!session.TwoFactorVerified) return StatusCode(403, new ErrorResponse { Error = "FORBIDDEN", Message = "Verification required" });
+        
+        Console.WriteLine($"[SESSION] GetDocument - Token: {token}, DocumentId: {session.DocumentId}");
+        
         var document = await _pdfService.GetDocumentAsync(session.DocumentId);
         if (document == null) return NotFound(new ErrorResponse { Error = "NOT_FOUND", Message = "Document not found" });
+        
+        Console.WriteLine($"[SESSION] Returning document: {document.FileName}, Size: {document.Content.Length} bytes");
+        
         return File(document.Content, document.MimeType, document.FileName);
     }
 

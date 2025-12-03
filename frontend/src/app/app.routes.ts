@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { wizardStepGuard } from './core/guards/wizard-step.guard';
+import { wizardStepGuard, completionGuard } from './core/guards/wizard-step.guard';
 
 export const routes: Routes = [
   {
@@ -8,7 +8,8 @@ export const routes: Routes = [
   },
   {
     path: 'postcode',
-    loadComponent: () => import('./features/postcode-verification/postcode-verification.component').then(m => m.PostcodeVerificationComponent)
+    loadComponent: () => import('./features/postcode-verification/postcode-verification.component').then(m => m.PostcodeVerificationComponent),
+    canActivate: [wizardStepGuard]
   },
   {
     path: 'two-factor',
@@ -27,15 +28,19 @@ export const routes: Routes = [
   },
   {
     path: 'complete',
-    loadComponent: () => import('./features/completion/completion.component').then(m => m.CompletionComponent)
+    loadComponent: () => import('./features/completion/completion.component').then(m => m.CompletionComponent),
+    canActivate: [completionGuard]
   },
   {
     path: 'expired',
     loadComponent: () => import('./shared/components/session-expired/session-expired.component').then(m => m.SessionExpiredComponent)
   },
   {
+    path: 'admin',
+    loadComponent: () => import('./features/admin/admin.component').then(m => m.AdminComponent)
+  },
+  {
     path: '**',
     redirectTo: ''
   }
 ];
-

@@ -47,7 +47,7 @@ public static class SeedData
             Content = samplePdfContent,
             SignatureFields = new List<SignatureField>
             {
-                new SignatureField { FieldName = "Signature1", Page = 1, X = 72, Y = 150, Width = 200, Height = 60 }
+                new SignatureField { FieldName = "Signature1", Page = 1, X = 120, Y = 150, Width = 200, Height = 60 }
             }
         };
 
