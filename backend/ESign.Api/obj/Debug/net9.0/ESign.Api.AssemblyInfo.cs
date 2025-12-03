@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ESign.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1ab4115725ccc09d973144a6797e2a5f49b19d8e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+44e35efd119d9475e8ba35b7f5159dbaccab28a7")]
 [assembly: System.Reflection.AssemblyProductAttribute("ESign.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ESign.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

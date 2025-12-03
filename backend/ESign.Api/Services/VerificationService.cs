@@ -69,16 +69,30 @@ public class VerificationService : IVerificationService
         var shouldGenerateNewCode = existingCode == null || 
                                      existingCode.Used || 
                                      DateTime.UtcNow > existingCode.ExpiresAt;
-        var code = shouldGenerateNewCode 
-            ? new Random().Next(100000, 999999).ToString() 
-            : existingCode!.Code;
-        
-        var twoFactorCode = new TwoFactorCode
+
+        TwoFactorCode twoFactorCode;
+        if (shouldGenerateNewCode)
         {
-            SessionToken = token, Code = code, CreatedAt = DateTime.UtcNow, ExpiresAt = DateTime.UtcNow.AddMinutes(10), LastSentAt = DateTime.UtcNow
-        };
+            // Generate new code with fresh expiry time
+            var newCode = new Random().Next(100000, 999999).ToString();
+            twoFactorCode = new TwoFactorCode
+            {
+                SessionToken = token, 
+                Code = newCode, 
+                CreatedAt = DateTime.UtcNow, 
+                ExpiresAt = DateTime.UtcNow.AddMinutes(10), 
+                LastSentAt = DateTime.UtcNow
+            };
+        }
+        else
+        {
+            // Reuse existing code but preserve original expiry time (only update LastSentAt)
+            existingCode!.LastSentAt = DateTime.UtcNow;
+            twoFactorCode = existingCode;
+        }
 
         _dataStore.SaveTwoFactorCode(twoFactorCode);
+        var code = twoFactorCode.Code;
         
         // Log the code for demo purposes
         Console.WriteLine($"[DEMO] 2FA Code for session '{token}': {code}");

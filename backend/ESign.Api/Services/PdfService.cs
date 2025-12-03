@@ -81,22 +81,24 @@ public class PdfService : IPdfService
         byte[] imageBytes;
         try
         {
-            imageBytes = Convert.FromBase64String(signature.ImageDataBase64);
+            imageBytes = DecodeBase64Image(signature.ImageDataBase64);
         }
-        catch
+        catch (FormatException ex)
         {
-            // If it's a data URL, extract the base64 part
-            var base64Data = signature.ImageDataBase64;
-            if (base64Data.Contains(","))
-            {
-                base64Data = base64Data.Split(',')[1];
-            }
-            imageBytes = Convert.FromBase64String(base64Data);
+            throw new InvalidOperationException($"Invalid signature image data: {ex.Message}", ex);
         }
 
         // Create image from bytes
         var imageData = ImageDataFactory.Create(imageBytes);
         var image = new ITextImage(imageData);
+
+        // Validate image dimensions to prevent division by zero
+        float imageWidth = imageData.GetWidth();
+        float imageHeight = imageData.GetHeight();
+        if (imageWidth <= 0 || imageHeight <= 0)
+        {
+            throw new InvalidOperationException($"Invalid image dimensions: width={imageWidth}, height={imageHeight}");
+        }
 
         // Calculate position - use signature field if available, otherwise place at bottom
         float x, y, width, height;
@@ -117,10 +119,14 @@ public class PdfService : IPdfService
             y = 100; // 100 points from bottom
         }
 
+        // Ensure minimum dimensions to prevent division by zero
+        width = Math.Max(width, 1);
+        height = Math.Max(height, 1);
+
         // Scale the image to fit the signature area while maintaining aspect ratio
-        float aspectRatio = imageData.GetWidth() / imageData.GetHeight();
+        float aspectRatio = imageWidth / imageHeight;
         float targetWidth = width;
-        float targetHeight = width / aspectRatio;
+        float targetHeight = aspectRatio > 0 ? width / aspectRatio : height;
         
         if (targetHeight > height)
         {
@@ -170,5 +176,39 @@ public class PdfService : IPdfService
         {
             new SignatureField { FieldName = "DefaultSignature", Page = 1, X = 72, Y = 100, Width = 200, Height = 50 }
         };
+    }
+
+    /// <summary>
+    /// Safely decodes base64 image data, handling both raw base64 and data URL formats.
+    /// </summary>
+    private static byte[] DecodeBase64Image(string imageData)
+    {
+        if (string.IsNullOrWhiteSpace(imageData))
+        {
+            throw new FormatException("Image data is empty");
+        }
+
+        var base64Data = imageData;
+
+        // Check if it's a data URL (e.g., "data:image/png;base64,...")
+        if (base64Data.Contains(","))
+        {
+            var parts = base64Data.Split(',');
+            if (parts.Length >= 2)
+            {
+                base64Data = parts[1];
+            }
+            // If split results in only 1 part, the comma was at the end - use original after comma
+        }
+
+        // Remove any whitespace that might have been introduced
+        base64Data = base64Data.Trim();
+
+        if (string.IsNullOrEmpty(base64Data))
+        {
+            throw new FormatException("No base64 data found after parsing");
+        }
+
+        return Convert.FromBase64String(base64Data);
     }
 }

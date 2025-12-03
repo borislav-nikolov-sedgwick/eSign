@@ -80,8 +80,12 @@ public class SessionController : ControllerBase
     public async Task<IActionResult> SignDocument(string token, [FromBody] SignatureRequest request)
     {
         if (!ModelState.IsValid) return BadRequest(new ErrorResponse { Error = "INVALID_REQUEST", Message = "Invalid signature data" });
-        var expiredCheck = await CheckSessionExpiredAsync(token);
-        if (expiredCheck != null) return expiredCheck;
+        
+        var session = await _sessionService.GetSessionAsync(token);
+        if (session == null) return NotFound(new ErrorResponse { Error = "NOT_FOUND", Message = "Session not found" });
+        if (IsSessionExpired(session)) return StatusCode(410, new ErrorResponse { Error = "EXPIRED", Message = "Session has expired" });
+        if (!session.TwoFactorVerified) return StatusCode(403, new ErrorResponse { Error = "FORBIDDEN", Message = "Two-factor verification required" });
+        
         if (!Enum.TryParse<SignatureMethod>(request.Method, true, out var method))
             return BadRequest(new ErrorResponse { Error = "INVALID_REQUEST", Message = "Invalid signature method" });
 
