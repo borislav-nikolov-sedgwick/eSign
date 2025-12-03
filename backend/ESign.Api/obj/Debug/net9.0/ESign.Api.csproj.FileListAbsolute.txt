@@ -42,3 +42,7 @@ C:\DATA\Coding\Repos\eSign\backend\ESign.Api\obj\Debug\net9.0\refint\ESign.Api.d
 C:\DATA\Coding\Repos\eSign\backend\ESign.Api\obj\Debug\net9.0\ESign.Api.pdb
 C:\DATA\Coding\Repos\eSign\backend\ESign.Api\obj\Debug\net9.0\ESign.Api.genruntimeconfig.cache
 C:\DATA\Coding\Repos\eSign\backend\ESign.Api\obj\Debug\net9.0\ref\ESign.Api.dll
+C:\DATA\Coding\Repos\eSign\backend\ESign.Api\bin\Debug\net9.0\nuget.config
+C:\DATA\Coding\Repos\eSign\backend\ESign.Api\bin\Debug\net9.0\BouncyCastle.Cryptography.dll
+C:\DATA\Coding\Repos\eSign\backend\ESign.Api\bin\Debug\net9.0\itext.bouncy-castle-adapter.dll
+C:\DATA\Coding\Repos\eSign\backend\ESign.Api\bin\Debug\net9.0\itext.pdfua.dll

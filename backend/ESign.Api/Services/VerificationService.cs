@@ -65,13 +65,24 @@ public class VerificationService : IVerificationService
             }
         }
 
-        var code = existingCode?.Code ?? new Random().Next(100000, 999999).ToString();
+        // Only reuse existing code if it hasn't expired and hasn't been used; otherwise generate a new one
+        var shouldGenerateNewCode = existingCode == null || 
+                                     existingCode.Used || 
+                                     DateTime.UtcNow > existingCode.ExpiresAt;
+        var code = shouldGenerateNewCode 
+            ? new Random().Next(100000, 999999).ToString() 
+            : existingCode!.Code;
+        
         var twoFactorCode = new TwoFactorCode
         {
             SessionToken = token, Code = code, CreatedAt = DateTime.UtcNow, ExpiresAt = DateTime.UtcNow.AddMinutes(10), LastSentAt = DateTime.UtcNow
         };
 
         _dataStore.SaveTwoFactorCode(twoFactorCode);
+        
+        // Log the code for demo purposes
+        Console.WriteLine($"[DEMO] 2FA Code for session '{token}': {code}");
+        
         return Task.FromResult(new SendCodeResponse { Success = true, CooldownSeconds = TwoFactorCooldownSeconds, Message = "Code sent" });
     }
 

@@ -1,5 +1,11 @@
 using ESign.Api.Data;
 using ESign.Api.Services;
+using iText.Bouncycastle;
+using iText.Commons.Bouncycastle;
+
+// Register Bouncy Castle for iText7
+IBouncyCastleFactory factory = new BouncyCastleFactory();
+iText.Bouncycastleconnector.BouncyCastleFactoryCreator.SetFactory(factory);
 
 var builder = WebApplication.CreateBuilder(args);
 

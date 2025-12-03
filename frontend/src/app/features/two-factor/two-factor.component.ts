@@ -1,7 +1,7 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { SessionService } from '../../core/services/session.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -27,8 +27,11 @@ import { NotificationService } from '../../core/services/notification.service';
               name="code"
               maxlength="6"
               placeholder="000000"
+              inputmode="numeric"
+              pattern="[0-9]*"
               class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white text-center text-2xl tracking-widest placeholder-blue-300/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              [disabled]="loading()">
+              [disabled]="loading()"
+              autocomplete="one-time-code">
           </div>
 
           @if (errorMessage()) {
@@ -68,14 +71,15 @@ import { NotificationService } from '../../core/services/notification.service';
         </div>
 
         <div class="mt-4 text-center text-blue-300/70 text-xs">
-          Demo code: <span class="font-mono bg-white/10 px-2 py-1 rounded">123456</span>
+          Check backend console for code
         </div>
       </div>
     </div>
   `
 })
-export class TwoFactorComponent implements OnInit {
+export class TwoFactorComponent implements OnInit, OnDestroy {
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private apiService = inject(ApiService);
   private sessionService = inject(SessionService);
   private notification = inject(NotificationService);
@@ -87,14 +91,31 @@ export class TwoFactorComponent implements OnInit {
   cooldown = signal(0);
   maskedPhone = signal('***-***-****');
 
-  private cooldownInterval: any;
+  private cooldownInterval: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit() {
+    // If no session, try to reload
+    if (!this.sessionService.hasSession()) {
+      const token = this.route.snapshot.queryParamMap.get('token');
+      if (token) {
+        this.router.navigate(['/'], { queryParams: { token } });
+      } else {
+        this.router.navigate(['/']);
+      }
+      return;
+    }
+
     const session = this.sessionService.session();
     if (session?.maskedPhoneNumber) {
       this.maskedPhone.set(session.maskedPhoneNumber);
     }
     this.sendCode();
+  }
+
+  ngOnDestroy() {
+    if (this.cooldownInterval) {
+      clearInterval(this.cooldownInterval);
+    }
   }
 
   sendCode() {
@@ -106,7 +127,7 @@ export class TwoFactorComponent implements OnInit {
       next: (response) => {
         this.sendingCode.set(false);
         if (response.success) {
-          this.notification.info('Verification code sent!');
+          this.notification.info('Verification code sent! Check backend console.');
           this.startCooldown(response.cooldownSeconds || 30);
         }
       },
@@ -128,7 +149,7 @@ export class TwoFactorComponent implements OnInit {
       const current = this.cooldown();
       if (current <= 1) {
         this.cooldown.set(0);
-        clearInterval(this.cooldownInterval);
+        if (this.cooldownInterval) clearInterval(this.cooldownInterval);
       } else {
         this.cooldown.set(current - 1);
       }
@@ -151,6 +172,7 @@ export class TwoFactorComponent implements OnInit {
       next: (response) => {
         this.loading.set(false);
         if (response.success) {
+          this.sessionService.updateSession({ twoFactorVerified: true });
           this.notification.success('Identity verified! You can now view your document.');
           this.router.navigate(['/document']);
         } else {
@@ -164,4 +186,3 @@ export class TwoFactorComponent implements OnInit {
     });
   }
 }
-

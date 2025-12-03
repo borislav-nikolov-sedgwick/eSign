@@ -28,6 +28,10 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/session/${token}/document`, { responseType: 'blob' });
   }
 
+  getSignedPreview(token: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/session/${token}/signed-preview`, { responseType: 'blob' });
+  }
+
   signDocument(token: string, signature: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/session/${token}/sign`, signature);
   }
@@ -40,4 +44,3 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/session/${token}/download`, { responseType: 'blob' });
   }
 }
-

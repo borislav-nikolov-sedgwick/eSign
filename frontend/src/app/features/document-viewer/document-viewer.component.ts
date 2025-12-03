@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ApiService } from '../../core/services/api.service';
 import { SessionService } from '../../core/services/session.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -29,7 +30,13 @@ import { NotificationService } from '../../core/services/notification.service';
             </div>
           } @else if (pdfUrl()) {
             <div class="bg-white rounded-lg overflow-hidden" style="height: 600px;">
-              <iframe [src]="pdfUrl()" class="w-full h-full"></iframe>
+              <object [data]="pdfUrl()" type="application/pdf" class="w-full h-full">
+                <embed [src]="pdfUrl()" type="application/pdf" class="w-full h-full" />
+                <p class="p-4 text-center">
+                  Your browser doesn't support PDF preview. 
+                  <a [href]="pdfUrl()" target="_blank" class="text-blue-500 underline">Download PDF</a>
+                </p>
+              </object>
             </div>
           } @else {
             <div class="text-center py-20 text-blue-200">
@@ -161,15 +168,19 @@ export class DocumentViewerComponent implements OnInit {
   private apiService = inject(ApiService);
   private sessionService = inject(SessionService);
   private notification = inject(NotificationService);
+  private sanitizer = inject(DomSanitizer);
 
   loading = signal(true);
-  pdfUrl = signal<any>(null);
+  pdfUrl = signal<SafeResourceUrl | null>(null);
   showSignatureDialog = signal(false);
   activeTab = signal('type');
   typedName = '';
   selectedFont = signal('Dancing Script');
   uploadedImage = signal<string | null>(null);
   signingInProgress = signal(false);
+
+  // Store signature data to pass to preview
+  private signatureImageData = '';
 
   tabs = [
     { id: 'type', label: 'Type' },
@@ -201,7 +212,8 @@ export class DocumentViewerComponent implements OnInit {
 
     this.apiService.getDocument(token).subscribe({
       next: (blob) => {
-        this.pdfUrl.set(URL.createObjectURL(blob));
+        const url = URL.createObjectURL(blob);
+        this.pdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
         this.loading.set(false);
       },
       error: () => {
@@ -245,15 +257,19 @@ export class DocumentViewerComponent implements OnInit {
     this.initCanvas();
     if (this.ctx && this.canvas) {
       const rect = this.canvas.getBoundingClientRect();
+      const scaleX = this.canvas.width / rect.width;
+      const scaleY = this.canvas.height / rect.height;
       this.ctx.beginPath();
-      this.ctx.moveTo(event.clientX - rect.left, event.clientY - rect.top);
+      this.ctx.moveTo((event.clientX - rect.left) * scaleX, (event.clientY - rect.top) * scaleY);
     }
   }
 
   draw(event: MouseEvent) {
     if (!this.isDrawing || !this.ctx || !this.canvas) return;
     const rect = this.canvas.getBoundingClientRect();
-    this.ctx.lineTo(event.clientX - rect.left, event.clientY - rect.top);
+    const scaleX = this.canvas.width / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+    this.ctx.lineTo((event.clientX - rect.left) * scaleX, (event.clientY - rect.top) * scaleY);
     this.ctx.stroke();
   }
 
@@ -327,6 +343,8 @@ export class DocumentViewerComponent implements OnInit {
     }
 
     const imageData = this.getSignatureData();
+    this.signatureImageData = imageData;
+    
     const signatureRequest = {
       method: this.activeTab() === 'type' ? 'Type' : this.activeTab() === 'draw' ? 'Draw' : 'Image',
       imageDataBase64: imageData.split(',')[1] || imageData,

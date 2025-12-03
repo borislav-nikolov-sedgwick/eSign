@@ -1,7 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { SessionService } from '../../core/services/session.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -26,8 +26,9 @@ import { NotificationService } from '../../core/services/notification.service';
               [(ngModel)]="postcode"
               name="postcode"
               placeholder="e.g., SW1A 1AA"
-              class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-300/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              [disabled]="loading()">
+              class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-300/50 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+              [disabled]="loading()"
+              autocomplete="postal-code">
           </div>
 
           @if (errorMessage()) {
@@ -53,12 +54,17 @@ import { NotificationService } from '../../core/services/notification.service';
             }
           </button>
         </form>
+
+        <div class="mt-6 text-center text-blue-300/70 text-xs">
+          Demo postcode: <span class="font-mono bg-white/10 px-2 py-1 rounded">SW1A 1AA</span>
+        </div>
       </div>
     </div>
   `
 })
-export class PostcodeVerificationComponent {
+export class PostcodeVerificationComponent implements OnInit {
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private apiService = inject(ApiService);
   private sessionService = inject(SessionService);
   private notification = inject(NotificationService);
@@ -67,6 +73,18 @@ export class PostcodeVerificationComponent {
   loading = signal(false);
   errorMessage = signal<string | null>(null);
   remainingAttempts = signal<number | null>(null);
+
+  ngOnInit() {
+    // If no session, try to load from query param or redirect
+    if (!this.sessionService.hasSession()) {
+      const token = this.route.snapshot.queryParamMap.get('token');
+      if (token) {
+        this.router.navigate(['/'], { queryParams: { token } });
+      } else {
+        this.router.navigate(['/']);
+      }
+    }
+  }
 
   verify() {
     if (!this.postcode.trim()) return;
@@ -84,6 +102,7 @@ export class PostcodeVerificationComponent {
       next: (response) => {
         this.loading.set(false);
         if (response.success) {
+          this.sessionService.updateSession({ postcodeVerified: true });
           this.notification.success('Postcode verified successfully!');
           this.router.navigate(['/two-factor']);
         } else {
@@ -103,4 +122,3 @@ export class PostcodeVerificationComponent {
     });
   }
 }
-

@@ -83,7 +83,9 @@ export class IntroductionComponent implements OnInit {
       next: (session) => {
         this.sessionService.setSession(session);
         this.loading.set(false);
-        this.notification.info('Welcome! Please verify your identity to continue.');
+        
+        // Check session status and redirect to appropriate step
+        this.redirectBasedOnStatus(session.status, session);
       },
       error: (err) => {
         this.loading.set(false);
@@ -96,8 +98,49 @@ export class IntroductionComponent implements OnInit {
     });
   }
 
+  private redirectBasedOnStatus(status: string, session: any) {
+    // Map backend status to frontend route
+    switch (status) {
+      case 'Completed':
+        this.router.navigate(['/complete']);
+        break;
+      case 'Preview':
+        this.notification.info('You have a pending signature. Please review and submit.');
+        this.router.navigate(['/preview']);
+        break;
+      case 'Signing':
+      case 'DocumentViewing':
+        this.notification.info('Welcome back! Continue reviewing your document.');
+        this.router.navigate(['/document']);
+        break;
+      case 'TwoFactorVerification':
+        this.notification.info('Please complete the verification process.');
+        this.router.navigate(['/two-factor']);
+        break;
+      case 'PostcodeVerification':
+        if (session.postcodeVerified) {
+          this.router.navigate(['/two-factor']);
+        } else {
+          this.notification.info('Please verify your postcode to continue.');
+          this.router.navigate(['/postcode']);
+        }
+        break;
+      case 'Pending':
+      default:
+        // Check if user has already completed some steps
+        if (session.twoFactorVerified) {
+          this.router.navigate(['/document']);
+        } else if (session.postcodeVerified) {
+          this.router.navigate(['/two-factor']);
+        } else {
+          // Show introduction page
+          this.notification.info('Welcome! Please verify your identity to continue.');
+        }
+        break;
+    }
+  }
+
   startProcess() {
     this.router.navigate(['/postcode']);
   }
 }
-

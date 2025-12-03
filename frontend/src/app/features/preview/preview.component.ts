@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ApiService } from '../../core/services/api.service';
 import { SessionService } from '../../core/services/session.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -16,20 +17,48 @@ import { NotificationService } from '../../core/services/notification.service';
           <div class="flex justify-between items-center mb-6">
             <div>
               <h1 class="text-2xl font-bold text-white">Preview Signed Document</h1>
-              <p class="text-blue-200 mt-1">Please review your signed document before submitting</p>
+              <p class="text-blue-200 mt-1">Your signature has been embedded in the PDF. Please review before submitting.</p>
             </div>
           </div>
 
-          <div class="bg-white rounded-lg overflow-hidden mb-6" style="height: 500px;">
-            <div class="flex items-center justify-center h-full text-gray-500">
-              <div class="text-center">
-                <svg class="w-16 h-16 mx-auto mb-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <p class="text-lg font-medium">Document Signed Successfully</p>
-                <p class="text-sm text-gray-400 mt-2">Your signature has been applied to the document</p>
+          <!-- Signed PDF Preview -->
+          <div class="bg-white rounded-lg overflow-hidden mb-6" style="height: 550px;">
+            @if (loading()) {
+              <div class="flex items-center justify-center h-full">
+                <div class="text-center">
+                  <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p class="text-gray-500">Loading signed document...</p>
+                </div>
               </div>
-            </div>
+            } @else if (pdfUrl()) {
+              <object [data]="pdfUrl()" type="application/pdf" class="w-full h-full">
+                <embed [src]="pdfUrl()" type="application/pdf" class="w-full h-full" />
+                <p class="p-4 text-center text-gray-500">
+                  Your browser doesn't support PDF preview.
+                  The signature has been successfully embedded in the document.
+                </p>
+              </object>
+            } @else if (error()) {
+              <div class="flex items-center justify-center h-full">
+                <div class="text-center p-8">
+                  <svg class="w-16 h-16 mx-auto mb-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <p class="text-red-600 mb-4">{{ error() }}</p>
+                  <button (click)="loadSignedDocument()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    Retry
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Signature confirmation banner -->
+          <div class="bg-green-500/20 border border-green-500/50 rounded-lg p-4 mb-6 flex items-center space-x-3">
+            <svg class="w-6 h-6 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-green-200">Your signature has been permanently embedded in the PDF document. Review the document above and submit when ready.</span>
           </div>
 
           <div class="flex space-x-4">
@@ -40,7 +69,7 @@ import { NotificationService } from '../../core/services/notification.service';
             </button>
             <button
               (click)="submitDocument()"
-              [disabled]="submitting()"
+              [disabled]="submitting() || loading()"
               class="flex-1 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg disabled:opacity-50">
               @if (submitting()) {
                 <span class="flex items-center justify-center">
@@ -57,13 +86,49 @@ import { NotificationService } from '../../core/services/notification.service';
     </div>
   `
 })
-export class PreviewComponent {
+export class PreviewComponent implements OnInit {
   private router = inject(Router);
   private apiService = inject(ApiService);
   private sessionService = inject(SessionService);
   private notification = inject(NotificationService);
+  private sanitizer = inject(DomSanitizer);
 
+  loading = signal(true);
   submitting = signal(false);
+  pdfUrl = signal<SafeResourceUrl | null>(null);
+  error = signal<string | null>(null);
+
+  ngOnInit() {
+    this.loadSignedDocument();
+  }
+
+  loadSignedDocument() {
+    this.loading.set(true);
+    this.error.set(null);
+    
+    const token = this.sessionService.getToken();
+    if (!token) {
+      this.router.navigate(['/']);
+      return;
+    }
+
+    this.apiService.getSignedPreview(token).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        this.pdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
+        this.loading.set(false);
+        this.notification.success('Signed document loaded successfully!');
+      },
+      error: (err) => {
+        this.loading.set(false);
+        if (err.status === 400) {
+          this.error.set('Document has not been signed yet. Please go back and sign the document.');
+        } else {
+          this.error.set('Failed to load signed document. Please try again.');
+        }
+      }
+    });
+  }
 
   goBack() {
     this.router.navigate(['/document']);
