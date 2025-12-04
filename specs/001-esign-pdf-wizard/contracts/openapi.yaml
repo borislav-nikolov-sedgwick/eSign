@@ -1,0 +1,547 @@
+openapi: 3.0.3
+info:
+  title: eSign PDF Wizard API
+  description: |
+    API for the eSign PDF Wizard demo application.
+    Handles session management, identity verification, document retrieval, and PDF signing.
+  version: 1.0.0
+  contact:
+    name: eSign Team
+
+servers:
+  - url: http://localhost:5000/api
+    description: Development server
+
+tags:
+  - name: Session
+    description: Signing session management
+  - name: Verification
+    description: Identity verification (postcode and 2FA)
+  - name: Document
+    description: PDF document operations
+  - name: Signature
+    description: Signature creation and application
+
+paths:
+  /session/{token}:
+    get:
+      tags:
+        - Session
+      summary: Get session details
+      description: Retrieves the current state of a signing session
+      operationId: getSession
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: Unique session token from email link
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '410':
+          description: Session expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /session/{token}/verify-postcode:
+    post:
+      tags:
+        - Verification
+      summary: Verify postcode
+      description: Validates the user's postcode against the claim record
+      operationId: verifyPostcode
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostcodeVerificationRequest'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '423':
+          description: Session locked due to too many failed attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /session/{token}/send-code:
+    post:
+      tags:
+        - Verification
+      summary: Send 2FA code
+      description: Sends a verification code to the user's registered phone number
+      operationId: sendTwoFactorCode
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Code sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendCodeResponse'
+        '429':
+          description: Too many requests (30 second cooldown)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /session/{token}/verify-code:
+    post:
+      tags:
+        - Verification
+      summary: Verify 2FA code
+      description: Validates the 2FA code entered by the user
+      operationId: verifyTwoFactorCode
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TwoFactorVerificationRequest'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        '400':
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /session/{token}/document:
+    get:
+      tags:
+        - Document
+      summary: Get PDF document
+      description: Retrieves the PDF document for viewing/signing
+      operationId: getDocument
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: PDF document
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Verification required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /session/{token}/document/info:
+    get:
+      tags:
+        - Document
+      summary: Get document metadata
+      description: Retrieves document metadata including signature field locations
+      operationId: getDocumentInfo
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Document metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentInfoResponse'
+
+  /session/{token}/sign:
+    post:
+      tags:
+        - Signature
+      summary: Apply signature to document
+      description: Applies the user's signature to the PDF document
+      operationId: signDocument
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignatureRequest'
+      responses:
+        '200':
+          description: Document signed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignatureResponse'
+        '400':
+          description: Invalid signature data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /session/{token}/preview:
+    get:
+      tags:
+        - Document
+      summary: Get signed document preview
+      description: Retrieves the signed PDF document for preview
+      operationId: getSignedDocumentPreview
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Signed PDF document
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Document not yet signed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /session/{token}/submit:
+    post:
+      tags:
+        - Document
+      summary: Submit signed document
+      description: Finalizes and submits the signed document
+      operationId: submitDocument
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Document submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitResponse'
+        '400':
+          description: Document not signed or already submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /session/{token}/download:
+    get:
+      tags:
+        - Document
+      summary: Download signed document
+      description: Downloads the final signed PDF document
+      operationId: downloadSignedDocument
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Signed PDF document for download
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: 'attachment; filename="signed-document.pdf"'
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Document not submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    SessionResponse:
+      type: object
+      required:
+        - token
+        - status
+        - maskedPhoneNumber
+        - claimReference
+      properties:
+        token:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - Pending
+            - PostcodeVerification
+            - TwoFactorVerification
+            - DocumentViewing
+            - Signing
+            - Preview
+            - Completed
+            - Expired
+            - Locked
+        maskedPhoneNumber:
+          type: string
+          description: Phone number with only last 3 digits visible
+          example: "***************935"
+        claimReference:
+          type: string
+        policyHolder:
+          type: string
+        postcodeVerified:
+          type: boolean
+        twoFactorVerified:
+          type: boolean
+        remainingPostcodeAttempts:
+          type: integer
+          minimum: 0
+          maximum: 5
+
+    PostcodeVerificationRequest:
+      type: object
+      required:
+        - postcode
+      properties:
+        postcode:
+          type: string
+          minLength: 1
+          maxLength: 10
+          example: "SW1A 1AA"
+
+    TwoFactorVerificationRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          pattern: "^[0-9]{6}$"
+          example: "123456"
+
+    VerificationResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        remainingAttempts:
+          type: integer
+
+    SendCodeResponse:
+      type: object
+      required:
+        - success
+        - cooldownSeconds
+      properties:
+        success:
+          type: boolean
+        cooldownSeconds:
+          type: integer
+          description: Seconds until next code can be requested
+          example: 30
+        message:
+          type: string
+
+    DocumentInfoResponse:
+      type: object
+      required:
+        - documentId
+        - fileName
+        - pageCount
+        - signatureFields
+      properties:
+        documentId:
+          type: string
+        fileName:
+          type: string
+        pageCount:
+          type: integer
+        signatureFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/SignatureField'
+
+    SignatureField:
+      type: object
+      required:
+        - fieldName
+        - page
+        - x
+        - y
+        - width
+        - height
+      properties:
+        fieldName:
+          type: string
+        page:
+          type: integer
+          minimum: 1
+        x:
+          type: number
+          format: float
+        y:
+          type: number
+          format: float
+        width:
+          type: number
+          format: float
+        height:
+          type: number
+          format: float
+
+    SignatureRequest:
+      type: object
+      required:
+        - method
+        - imageDataBase64
+      properties:
+        method:
+          type: string
+          enum:
+            - Type
+            - Draw
+            - Image
+        imageDataBase64:
+          type: string
+          description: Base64-encoded PNG image of the signature
+        typedText:
+          type: string
+          description: Text entered (for Type method)
+          maxLength: 100
+        fontFamily:
+          type: string
+          description: Font family used (for Type method)
+        color:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+          default: "#000000"
+
+    SignatureResponse:
+      type: object
+      required:
+        - success
+        - signedAt
+      properties:
+        success:
+          type: boolean
+        signedAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+
+    SubmitResponse:
+      type: object
+      required:
+        - success
+        - submittedAt
+      properties:
+        success:
+          type: boolean
+        submittedAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+        downloadUrl:
+          type: string
+          description: URL to download the signed document
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
